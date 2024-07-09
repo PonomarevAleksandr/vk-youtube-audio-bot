@@ -1,5 +1,6 @@
 # Audio-VK-YT-bot
-![cover](https://github.com/PonomarevAleksandr/Audio-VK-YT-bot/assets/155808976/90f67e00-d63b-4374-ae84-86710b4b85ed)
+![cover](https://github.com/PonomarevAleksandr/Audio-VK-YT-bot/assets/155808976/4e2f43db-dfe2-44dd-b216-43ad1dca2931)
+
 ## Описание
 Audio-VK-YT-bot - это телеграм-бот для скачивания музыки с VK и YouTube. Бот использует `vk_api` и `yt-dlp` для извлечения музыкальных треков и предоставляет простой интерфейс для пользователей для скачивания их любимых песен.
 
@@ -17,10 +18,9 @@ Audio-VK-YT-bot - это телеграм-бот для скачивания м�
 
 ## Как это работает
 **Видео-инструкция:**
-- https://github.com/PonomarevAleksandr/Audio-VK-YT-bot/assets/155808976/26fbf9a7-842d-44c8-90be-3624b014d912
-- https://github.com/PonomarevAleksandr/Audio-VK-YT-bot/assets/155808976/da5ae6ef-ba0a-4469-9bbd-898b195fe208
-- https://github.com/PonomarevAleksandr/Audio-VK-YT-bot/assets/155808976/3f75934c-e944-4306-ac58-a07156736e3f
-
+- https://github.com/PonomarevAleksandr/Audio-VK-YT-bot/assets/155808976/ea5b33ac-0d53-4abd-8c17-276782644dd6
+- https://github.com/PonomarevAleksandr/Audio-VK-YT-bot/assets/155808976/90f29e68-c5d5-41f4-9f86-fc2dfaebe94c
+- https://github.com/PonomarevAleksandr/Audio-VK-YT-bot/assets/155808976/6bad27f3-6ecd-4f19-8953-8a0e1e3268bd
 
 Когда пользователь отправляет боту название трека, имя исполнителя или ссылку на YouTube, процесс работы бота начинается. Вот шаги, которые следует бот:
 
