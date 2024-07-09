@@ -18,7 +18,7 @@ from src.callbacks import LanguageSwitcher, NewSongs, Start, Help, ChannelsAdmin
 
 from src.models.user import User
 from src.utils.FSMState import AddSponsorFSM, EditSponsorFSM
-from src.utils.db import db, rdb
+from src.db.db import MongoDbClient
 
 from src.utils.vk import VK, audio_list
 
@@ -27,14 +27,14 @@ router = Router()
 
 async def check_all_subs(bot: Bot, user_id, channels_list_map):
     for channel_info in channels_list_map:
-        user_channel_status = await bot.get_chat_member(chat_id=channel_info['channel_id'], user_id=user_id)
+        user_channel_status = await bot.get_chat_member(chat_id=channel_info.channel_id, user_id=user_id)
         if user_channel_status.status not in ['administrator', 'owner', 'member', 'creator']:
             return False
     return True
 
 #Create users.txt file
 @router.message(Command('users'))
-async def export_users_command(message: Message, bot: Bot):
+async def export_users_command(message: Message, bot: Bot, db: MongoDbClient):
     if message.from_user.id == 103095353:
         users_cursor = await db.users.find({})
         user_list_map = list(
@@ -50,12 +50,10 @@ async def export_users_command(message: Message, bot: Bot):
         await bot.send_document(chat_id=message.chat.id, document=FSInputFile('users.txt'))
 
 @router.message(Command('start'))
-async def start_command(message: Message, bot: Bot, locale: TranslatorRunner):
+async def start_command(message: Message, bot: Bot, locale: TranslatorRunner,
+                       db: MongoDbClient):
     channels_cursor = await db.channels.find({})
-    channels_list_map = list(
-        map(lambda channel: {'channel_id': channel.channel_id, 'url': channel.url, 'name': channel.name},
-            channels_cursor))
-    all_subscribed = await check_all_subs(bot, message.from_user.id, channels_list_map)
+    all_subscribed = await check_all_subs(bot, message.from_user.id, channels_cursos)
     if all_subscribed:
         keyboard = InlineKeyboardBuilder()
         keyboard.row(types.InlineKeyboardButton(text=locale.new(), callback_data=NewSongs(chart_type='news').pack()))
@@ -79,7 +77,7 @@ async def start_command(message: Message, bot: Bot, locale: TranslatorRunner):
 
 
 @router.message(Command('help'))
-async def help_command(message: Message, bot: Bot, locale: TranslatorRunner):
+async def help_command(message: Message, bot: Bot, locale: TranslatorRunner,
     keyboard = InlineKeyboardBuilder()
     keyboard.row(types.InlineKeyboardButton(text=locale.menu(),
                                             callback_data=Start().pack()))
@@ -101,16 +99,15 @@ async def language_switch(message: Message, bot: Bot, locale: TranslatorRunner):
 
 #Admin-panel
 @router.message(Command('admin'))
-async def admin_panel(message: types.Message, locale: TranslatorRunner):
+async def admin_panel(message: types.Message, locale: TranslatorRunner,):
+                      db: MongoDbClient):
+
     if message.from_user.id == 103095353:
         channels_cursor = await db.channels.find({})
-        channels_list_map = list(
-            map(lambda channel: {'channel_id': channel.channel_id, 'url': channel.url, 'name': channel.name},
-                channels_cursor))
         markup = InlineKeyboardBuilder()
-        for channel in channels_list_map:
+        for channel in channels_cursos:
             markup.row(InlineKeyboardButton(text=channel['name'],
-                                            callback_data=ChannelsAdmin(channel_id=channel['channel_id']
+                                            callback_data=ChannelsAdmin(channel_id=channel.channel_id
                                                                         ).pack()))
         markup.row(InlineKeyboardButton(text='Добавить спонсора', callback_data=AddSponsor(edit='no').pack()))
 
@@ -120,7 +117,8 @@ async def admin_panel(message: types.Message, locale: TranslatorRunner):
 
 #Admin-panel
 @router.message(EditSponsorFSM.edit_name)
-async def change_name(message: types.Message, bot: Bot, state: FSMContext):
+async def change_name(message: types.Message, bot: Bot, state: FSMContext,
+                     db: MongoDbClient):
     await bot.delete_message(chat_id=message.from_user.id, message_id=message.message_id)
     data = await state.get_data()
     try:
@@ -158,7 +156,7 @@ async def change_name(message: types.Message, bot: Bot, state: FSMContext):
 
 #Admin-panel
 @router.message(EditSponsorFSM.edit_chanel_id)
-async def change_channel_id(message: types.Message, bot: Bot, state: FSMContext):
+async def change_channel_id(message: types.Message, bot: Bot, state: FSMContext, db: MongoDbClient):
     await bot.delete_message(chat_id=message.from_user.id, message_id=message.message_id)
     data = await state.get_data()
     try:
@@ -196,7 +194,7 @@ async def change_channel_id(message: types.Message, bot: Bot, state: FSMContext)
 
 #Admin-panel
 @router.message(EditSponsorFSM.edit_url)
-async def change_url(message: types.Message, bot: Bot, state: FSMContext):
+async def change_url(message: types.Message, bot: Bot, state: FSMContext, db: MongoDbClient):
     await bot.delete_message(chat_id=message.from_user.id, message_id=message.message_id)
     data = await state.get_data()
 
