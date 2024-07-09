@@ -14,8 +14,7 @@ from src.callbacks import LanguageSwitcher, PlaylistNavigate, NewSongs, Start, H
     VkDownloadAudio, ChannelsAdmin, RemoveSponsor, SponsorList, AddSponsor
 from src.models.user import User
 from src.utils.FSMState import AddSponsorFSM, EditSponsorFSM
-from src.utils.db import db, rdb
-from src.utils.db import raw_db
+from src.db.db import MongoDbClient
 from src.utils.vk import audio_list, VK
 
 router = Router()
@@ -54,7 +53,7 @@ async def check_all_subs(bot: Bot, user_id, channels_list_map):
 
 
 @router.callback_query(Start.filter())
-async def start_callback(callback_query: types.CallbackQuery, bot: Bot, locale: TranslatorRunner):
+async def start_callback(callback_query: types.CallbackQuery, bot: Bot, locale: TranslatorRunner, db: MongoDbClient):
     channels_cursor = await db.channels.find({})
     channels_list_map = list(
         map(lambda channel: {'channel_id': channel.channel_id, 'url': channel.url, 'name': channel.name},
@@ -83,7 +82,7 @@ async def start_callback(callback_query: types.CallbackQuery, bot: Bot, locale: 
 
 @router.callback_query(LanguageSwitcher.filter())
 async def change_language(callback_query: CallbackQuery, bot: Bot, callback_data: LanguageSwitcher,
-                          locale: TranslatorRunner):
+                          locale: TranslatorRunner, db: MongoDbClient):
     await callback_query.answer(locale.menu())
 
     language_code = str(callback_data.lang_select)
@@ -95,7 +94,7 @@ async def change_language(callback_query: CallbackQuery, bot: Bot, callback_data
 
 @router.callback_query(PlaylistNavigate.filter())
 async def navigate_callback(query: CallbackQuery, bot: Bot, user: User, callback_data: PlaylistNavigate,
-                            locale: TranslatorRunner):
+                            locale: TranslatorRunner, raw_db: MongoDbClient):
     page = round(callback_data.offset / 10) + 1
 
     cache = await raw_db['vk_cache'].find_one({'_id': ObjectId(callback_data.cache_id)})
@@ -225,7 +224,7 @@ async def handle_callback(callback_query: CallbackQuery, bot: Bot, callback_data
 #VK download from playlists
 @router.callback_query(VkDownloadAudio.filter())
 async def on_track_callback(callback_query: types.CallbackQuery, callback_data: VkDownloadAudio, locale: TranslatorRunner,
-                            bot: Bot):
+                            bot: Bot, raw_db: MongoDbClient):
     cached_result = await raw_db.vk_cache.find_one({'_id': ObjectId(callback_data.cache_id)})
     if cached_result:
         try:
@@ -260,7 +259,8 @@ async def on_track_callback(callback_query: types.CallbackQuery, callback_data: 
 
 #Admin-panel
 @router.callback_query(ChannelsAdmin.filter())
-async def channels_admin(callback_query: types.CallbackQuery, callback_data: ChannelsAdmin, bot: Bot):
+async def channels_admin(callback_query: types.CallbackQuery, callback_data: ChannelsAdmin, 
+                         bot: Bot, db: MongoDbClient):
     info = await db.channels.find_one({'channel_id': callback_data.channel_id})
     await callback_query.answer(info.name)
     keyboard = InlineKeyboardBuilder()
@@ -285,7 +285,8 @@ async def channels_admin(callback_query: types.CallbackQuery, callback_data: Cha
 
 #Admin-panel
 @router.callback_query(AddSponsor.filter())
-async def channels_admin(callaback_query: types.CallbackQuery, callback_data: AddSponsor, bot: Bot, state: FSMContext):
+async def channels_admin(callaback_query: types.CallbackQuery, callback_data: AddSponsor, bot: Bot, state: FSMContext,
+                        db: MongoDbClient):
     channel_id = await db.channels.find_one({'channel_id': callback_data.channel_id})
 
     if callback_data.edit == 'no':
@@ -316,7 +317,8 @@ async def channels_admin(callaback_query: types.CallbackQuery, callback_data: Ad
 
 #Admin-panel
 @router.callback_query(SponsorList.filter())
-async def channels_admin(callback_query: types.CallbackQuery, bot: Bot, locale: TranslatorRunner):
+async def channels_admin(callback_query: types.CallbackQuery, bot: Bot, locale: TranslatorRunner,
+                        db: MongoDbClient):
     channels_cursor = await db.channels.find({})
     channels_list_map = list(
         map(lambda channel: {'channel_id': channel.channel_id, 'url': channel.url, 'name': channel.name},
@@ -337,7 +339,8 @@ logging.basicConfig(level=logging.INFO)
 
 #Admin-panel
 @router.callback_query(RemoveSponsor.filter())
-async def remove_sponsor(callback_query: types.CallbackQuery, bot: Bot, callback_data: RemoveSponsor):
+async def remove_sponsor(callback_query: types.CallbackQuery, bot: Bot, callback_data: RemoveSponsor,
+                        db: MongoDbClient):
     try:
         result = await db.channels.delete_one({'channel_id': callback_data.channel_id})
         if result.deleted_count > 0:
