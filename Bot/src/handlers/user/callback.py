@@ -44,9 +44,9 @@ async def help_callback(callback_query: types.CallbackQuery, bot: Bot, locale: T
                                    caption=locale.text.help(), parse_mode='html', reply_markup=keyboard.as_markup())
 
 #check to subscribe
-async def check_all_subs(bot: Bot, user_id, channels_list_map):
+async def check_all_subs(bot: Bot, user_id, channels_cursor):
     for channel_info in channels_list_map:
-        user_channel_status = await bot.get_chat_member(chat_id=channel_info['channel_id'], user_id=user_id)
+        user_channel_status = await bot.get_chat_member(chat_id=channel_info.cahnnel_id, user_id=user_id)
         if user_channel_status.status not in ['administrator', 'owner', 'member', 'creator']:
             return False
     return True
@@ -55,10 +55,7 @@ async def check_all_subs(bot: Bot, user_id, channels_list_map):
 @router.callback_query(Start.filter())
 async def start_callback(callback_query: types.CallbackQuery, bot: Bot, locale: TranslatorRunner, db: MongoDbClient):
     channels_cursor = await db.channels.find({})
-    channels_list_map = list(
-        map(lambda channel: {'channel_id': channel.channel_id, 'url': channel.url, 'name': channel.name},
-            channels_cursor))
-    all_subscribed = await check_all_subs(bot, callback_query.from_user.id, channels_list_map)
+    all_subscribed = await check_all_subs(bot, callback_query.from_user.id, channels_cursor)
     if all_subscribed:
         keyboard = InlineKeyboardBuilder()
         keyboard.row(types.InlineKeyboardButton(text=locale.new(), callback_data=NewSongs(chart_type='news').pack()))
@@ -320,13 +317,10 @@ async def channels_admin(callaback_query: types.CallbackQuery, callback_data: Ad
 async def channels_admin(callback_query: types.CallbackQuery, bot: Bot, locale: TranslatorRunner,
                         db: MongoDbClient):
     channels_cursor = await db.channels.find({})
-    channels_list_map = list(
-        map(lambda channel: {'channel_id': channel.channel_id, 'url': channel.url, 'name': channel.name},
-            channels_cursor))
     markup = InlineKeyboardBuilder()
-    for channel in channels_list_map:
+    for channel in channels_cursor:
         markup.row(InlineKeyboardButton(text=channel['name'],
-                                        callback_data=ChannelsAdmin(channel_id=channel['channel_id'],
+                                        callback_data=ChannelsAdmin(channel_id=channel.channel_id,
                                                                     url=channel['url'], name=channel['name']).pack()))
     markup.row(InlineKeyboardButton(text='Добавить спонсора', callback_data=AddSponsor(edit='no').pack()))
 
