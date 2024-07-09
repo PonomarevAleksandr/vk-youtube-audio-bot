@@ -1,0 +1,45 @@
+version: '3'
+
+services:
+
+  worker:
+    build:
+      context: .
+      dockerfile: dockerfile.worker
+
+
+  bot:
+    build:
+      context: .
+      dockerfile: dockerfile.bot
+
+  mongo:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: username
+      MONGO_INITDB_ROOT_PASSWORD: pass
+      MONGO_INITDB_DATABASE: database
+    volumes:
+      - ./docker/mongo/mongodump:/mongodump
+      - ./docker/mongo/data:/data/db
+    ports:
+      - port:port
+
+  redis:
+    image: redis:latest
+    restart: always
+    command: '--requirepass pass'
+    ports:
+      - port:port
+
+  tgapi:
+    image: riftbit/telegram-bot-api
+    ports:
+      - port:port
+    restart: always
+    environment:
+      TELEGRAM_API_ID: "id"
+      TELEGRAM_API_HASH: "hash"
+      TELEGRAM_LOCAL: "1"
+    container_name: tgapi
